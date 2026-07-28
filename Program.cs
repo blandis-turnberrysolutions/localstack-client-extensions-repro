@@ -37,7 +37,7 @@ class BucketLister(IAmazonS3 service)
     public async Task ListAsync()
     {
         Console.WriteLine("Listing Buckets...");
-        await service.EnsureBucketExistsAsync("my-bucket");
+        await service.EnsureBucketExistsAsync("awstest-my-bucket");
         var result = await service.ListBucketsAsync();
         Console.WriteLine($"Buckets: {string.Join(", ", result.Buckets.Select(b => b.BucketName))}");
     }
