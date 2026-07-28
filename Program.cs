@@ -5,17 +5,18 @@ using Amazon.S3;
 using Microsoft.Extensions.Configuration;
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         IConfiguration Configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddEnvironmentVariables()
             .AddCommandLine(args)
             .Build();
 
-        var y = Configuration.GetValue<bool>("LocalStack:UseLocalStack");
-        Console.WriteLine($"Using LocalStack: {y}");
+        var isUsingLocalStack = Configuration.GetValue<bool>("LocalStack:UseLocalStack");
+        Console.WriteLine($"Using LocalStack: {isUsingLocalStack}");
+        var awsOptions = Configuration.GetAWSOptions();
+        Console.WriteLine($"AWS Region: {awsOptions.Region}");
 
         var hostBuilder = Host.CreateDefaultBuilder(args);
         hostBuilder.ConfigureServices((hostContext, services) =>
@@ -23,18 +24,21 @@ class Program
             services.AddLocalStack(Configuration);
             services.AddDefaultAWSOptions(Configuration.GetAWSOptions());
             services.AddAwsService<IAmazonS3>();
-            services.AddSingleton<MyService>();
+            services.AddSingleton<BucketLister>();
         });
         var host = hostBuilder.Build();
-        var myService = host.Services.GetRequiredService<MyService>();
-        myService.DoSomething();
+        var myService = host.Services.GetRequiredService<BucketLister>();
+        await myService.ListAsync();
     }
 }
 
-class MyService(IAmazonS3 service)
+class BucketLister(IAmazonS3 service)
 {
-    public void DoSomething()
+    public async Task ListAsync()
     {
-        Console.WriteLine("MyService is doing something...");
+        Console.WriteLine("Listing Buckets...");
+        await service.EnsureBucketExistsAsync("my-bucket");
+        var result = await service.ListBucketsAsync();
+        Console.WriteLine($"Buckets: {string.Join(", ", result.Buckets.Select(b => b.BucketName))}");
     }
 }
