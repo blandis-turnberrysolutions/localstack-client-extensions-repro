@@ -23,7 +23,14 @@ class Program
         {
             services.AddLocalStack(Configuration);
             services.AddDefaultAWSOptions(Configuration.GetAWSOptions());
-            services.AddAwsService<IAmazonS3>();
+            if (isUsingLocalStack)
+            {
+                services.AddAWSServiceLocalStack<IAmazonS3>();
+            }
+            else
+            {
+                services.AddAWSService<IAmazonS3>();
+            }
             services.AddSingleton<BucketLister>();
         });
         var host = hostBuilder.Build();
